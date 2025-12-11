@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#FF9800', 'edgeLabelBackground':'#ffffff', 'tertiaryColor': '#f4f4f4', 'fontFamily': 'arial, sans-serif'}}}%%
+graph LR
+    %% --- 定義活潑的樣式 ---
+    classDef zone_fab fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,rx:15,ry:15,color:#0d47a1;
+    classDef zone_it fill:#fff3e0,stroke:#ef6c00,stroke-width:3px,rx:15,ry:15,color:#e65100;
+    
+    %% 定義元件樣式 (圓角、色彩鮮明)
+    classDef node_asset fill:#bbdefb,stroke:#1976d2,color:#0d47a1,rx:10,ry:10,stroke-width:2px;
+    classDef node_brain fill:#ffcc80,stroke:#f57c00,color:#e65100,rx:10,ry:10,stroke-width:2px;
+    classDef node_view fill:#c8e6c9,stroke:#388e3c,color:#1b5e20,rx:10,ry:10,stroke-width:2px;
+    classDef gate style fill:#ffcdd2,stroke:#d32f2f,stroke-width:4px,shape:circle,color:#b71c1c;
+
+    %% --- 主要區域定義 ---
+    subgraph FAB_ZONE ["🟦 工廠生產區 (黃金產線)"]
+        direction TB
+        Tools("🏭 生產機台設備<br>(核心資產)"):::node_asset
+        Guard("🛡️ 安全小幫手<br>(負責收集設備健康狀況)"):::node_asset
+        
+        Tools -->|"即時狀態監控"| Guard
+    end
+
+    SecurityGate{"安全<br>檢查門"}:::gate
+
+    subgraph IT_ZONE ["🟧 企業管理中心 (智慧大腦)"]
+        direction TB
+        AI_Brain("🧠 智慧分析引擎<br>(自動判斷異常與風險)"):::node_brain
+        BigData[("💾 超大資料倉庫<br>(儲存歷史紀錄)")]; 
+        class BigData node_brain;
+    end
+    
+    subgraph VIEW_ZONE ["🟩 決策視圖"]
+        Dashboard("📊 即時戰情儀表板<br>(紅綠燈號一目了然)"):::node_view
+        Boss("👨‍💼 管理團隊 / 廠長<br>(決策與指揮)"):::node_view
+    end
+
+    %% --- 關鍵流程連接 (粗線條強調流向) ---
+    Guard ===>|"🔒 安全加密傳送數據"| SecurityGate
+    SecurityGate ===> AI_Brain
+    
+    AI_Brain --> BigData
+    BigData --> Dashboard
+    Dashboard --> Boss
+
+    %% --- 應用區域樣式 ---
+    class FAB_ZONE zone_fab;
+    class IT_ZONE zone_it;
+
