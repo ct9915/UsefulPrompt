@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#005b96', 'edgeLabelBackground':'#ffffff', 'tertiaryColor': '#f4f4f4'}}}%%
+graph LR
+    %% 定義樣式
+    classDef ot fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#01579b;
+    classDef it fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#1b5e20;
+    classDef firewall fill:#ffcdd2,stroke:#d32f2f,stroke-width:4px,color:#b71c1c;
+    classDef component fill:#fff,stroke:#666,stroke-width:1px;
+    classDef db fill:#fff,stroke:#666,stroke-width:1px,shape:cylinder;
+
+    subgraph OT_Zone ["FAB 無塵室網路 (OT Network) - 高度管制區"]
+        direction TB
+        subgraph Tools ["生產設備群 (Tools)"]
+            Tool_Legacy("舊型機台 (Legacy OS)<br>Windows XP/7/2000"):::component
+            Tool_Modern("新型機台 / EAP Server<br>Windows 10/Server"):::component
+        end
+        
+        Proxy["Wazuh Proxy<br>(流量中繼與緩衝)"]:::component
+    end
+    
+    FW{"防火牆 (Firewall)<br>單向管制"}:::firewall
+
+    subgraph IT_Zone ["IT 機房網路 (Corporate IT/DMZ)"]
+        direction TB
+        Manager["Wazuh Server / Manager<br>(規則引擎與解碼)"]:::component
+        
+        subgraph ELK_Stack ["ELK / OpenSearch Stack"]
+            Elastic[(Elasticsearch /<br>Indexer Cluster)]:::db
+            Kibana["Kibana Dashboards<br>(可視化戰情室)"]:::component
+        end
+    end
+
+    Users("廠務/設備/資安主管<br>( via Browser)")
+
+    %% 連線關係
+    Tool_Modern -->|"Wazuh Agent (加密通道)"| Proxy
+    Tool_Legacy -.->|"Agentless (Syslog/WMI/SSH)"| Proxy
+    
+    Proxy ===>|"匯總流量 (Port 1514/TCP)"| FW
+    FW ===> Manager
+    
+    Manager -->|"解析後日誌 (JSON)"| Elastic
+    Elastic <--> Kibana
+    
+    Users -->|"HTTPS 存取"| Kibana
+
+    %% 應用樣式
+    class OT_Zone ot;
+    class IT_Zone it;
