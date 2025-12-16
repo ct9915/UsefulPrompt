@@ -1,0 +1,52 @@
+rule "Fortigate: Parse KV and Normalize"
+when
+    // 條件：確認訊息來自 Fortigate
+    // 方法 1: 如果你有設定特定的 Input，可以檢查 source_input_id
+    // 方法 2: 檢查訊息內容特徵 (Fortigate 幾乎都有 devid=)
+    has_field("message") && contains(to_string($message.message), "devid=")
+then
+    // 1. 使用 key_value 函數解析整串訊息
+    // trim_value_chars 用來去除 Fortigate 常用的雙引號 (例如 user="admin")
+    set_fields(
+        key_value(
+            value: to_string($message.message),
+            trim_value_chars: "\""
+        )
+    );
+
+    // 2. 欄位重新命名 (Mapping) 以符合標準或腳本需求
+    // Fortigate: srcip -> Graylog: src_ip
+    // Fortigate: dstip -> Graylog: dst_ip
+    
+    // 處理 Source IP
+    if (has_field("srcip")) {
+        set_field("src_ip", $message.srcip);
+        // 選用：如果不想保留舊欄位名，可以刪除
+        // remove_field("srcip"); 
+    }
+
+    // 處理 Destination IP
+    if (has_field("dstip")) {
+        set_field("dst_ip", $message.dstip);
+    }
+
+    // 3. 處理並轉換 Port 類型 (重要：字串轉數字)
+    // Fortigate: dstport -> Graylog: dst_port (Long)
+    
+    if (has_field("dstport")) {
+        // to_long 是關鍵，否則 OpenSearch 會把它當文字存，影響效能
+        set_field("dst_port", to_long($message.dstport));
+    }
+    
+    if (has_field("srcport")) {
+        set_field("src_port", to_long($message.srcport));
+    }
+
+    // 4. 其他有用的欄位標準化 (選用)
+    if (has_field("action")) {
+        set_field("firewall_action", $message.action);
+    }
+    
+    // 標記這條日誌已經被處理過 (方便除錯)
+    set_field("gl2_pipeline_processed", true);
+end
