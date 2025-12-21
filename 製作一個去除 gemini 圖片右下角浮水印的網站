@@ -1,0 +1,9 @@
+#https://gemini.google.com/share/00a103da23d0
+
+Create a web app for removing watermarks from images using a clone stamp tool similar to Photoshop. 
+The app should allow users to upload an image, then use a brush tool to select a source area by alt-clicking and paint over the watermark by clicking and dragging to clone pixels from the source area. 
+Include adjustable brush size using a slider, opacity control from 0 to 100 percent, and a hardness/softness setting for blending. 
+Add an undo button to revert the last action and a download button to save the edited image. Use HTML5 canvas for the image editing functionality with JavaScript for the clone stamp logic. 
+Make the interface clean with the image preview centered, control buttons on the left sidebar, and clear instructions showing users how to alt-click to set source point and regular click to clone. 
+Ensure the cloned areas blend naturally with surrounding pixels and maintain alignment during brush strokes. 
+Style it with a modern dark theme interface similar to professional photo editing software.
