@@ -1,0 +1,64 @@
+rule "Vectra: Parse CEF and Normalization"
+when
+    // 1. 確保訊息存在
+    has_field("message") AND
+    // 2. 鎖定 Vectra 的日誌 (通常含有 Vectra Networks 或 CEF 標頭)
+    (
+        contains(to_string($message.message), "Vectra Networks", true) OR
+        contains(to_string($message.message), "CEF:0|Vectra", true)
+    )
+then
+    // --- 階段 1: 基礎 CEF 解析 ---
+    // 使用 Graylog 內建的高效能 CEF 解析函數
+    let cef_data = parse_cef(to_string($message.message));
+    set_fields(cef_data);
+
+    // --- 階段 2: 關鍵欄位對應 (Mapping) ---
+    // Vectra 的 CEF 擴充欄位通常使用 cs1, cs2, cn1 等代號
+    // 我們需要將其映射為人類可讀的欄位，以便製作 Dashboard
+
+    // 處理 Threat Score (通常在 cs1 或 cn1，依韌體版本而定)
+    // 檢查 cs1Label 是否為 "Threat Score" 或直接取用 cs1/cn1
+    // 下面邏輯為：如果 cs1 存在，將其重新命名為 threat_score
+    set_field("threat_score", to_long($message.cs1));
+    set_field("certainty_score", to_long($message.cs2));
+
+    // 處理 Source / Destination IP (CEF 標準欄位通常已解析，但確保一致性)
+    // 有時 CEF 解析後會是 source_address，我們統一為 src_ip
+    set_field("src_ip", $message.source_address);
+    set_field("dst_ip", $message.destination_address);
+    
+    // 處理 Detection Category (偵測類別)
+    // Vectra 有時放在 'cat' 或 'deviceEventClassId'
+    set_field("category", $message.deviceEventClassId);
+
+    // 處理 Detection Name (偵測名稱，例如 Hidden HTTPS Tunnel)
+    // 通常在 CEF 的 'name' 欄位 (解析後可能叫 cef_name 或 name)
+    set_field("detection_name", $message.name);
+
+    // 處理 URL 或 Hostname (如果有)
+    // Vectra 常用 shost (Source Host) 和 dhost (Dest Host)
+    set_field("host_name", $message.source_dns_domain); 
+
+
+    // --- 階段 3: 數值型態強制轉換 (關鍵！) ---
+    // 為了讓 Dashboard 能畫出 "大於 50 分" 的圖表，必須確保分數是數字 (Long) 而非字串 (String)
+    // 如果上面階段 2 沒轉成功，這裡做最後保險
+    
+    // 威脅分數轉數字
+    let t_score = to_long($message.threat_score);
+    set_field("threat_score", t_score);
+
+    // 確信度分數轉數字
+    let c_score = to_long($message.certainty_score);
+    set_field("certainty_score", c_score);
+
+    // --- 階段 4: 清理雜訊 (選用) ---
+    // 刪除原始的冗長 message 以節省空間，或者刪除看不懂的 cs1Label
+    // remove_field("message"); // 建議保留 message 以便除錯，除非空間極度不足
+    remove_field("cs1");
+    remove_field("cs1Label");
+    remove_field("cs2");
+    remove_field("cs2Label");
+
+end
